@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Fixed Converter NOC-SA (Auto-Header)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { background: #f0f2f5; padding: 50px; font-family: 'Segoe UI', sans-serif; }
+        .upload-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .btn-primary { background: #004d99; border: none; padding: 12px; font-weight: bold; }
+        #notif { font-weight: 500; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container col-md-6">
+    <div class="upload-card">
+        <h4 class="text-center mb-4">UPLOAD MENTAHAN LAPORAN EXCEL</h4>
+        
+        <div class="mb-3">
+            <label class="form-label fw-bold">1. File Excel Mentah</label>
+            <input type="file" id="inputFile" class="form-control" accept=".xlsx, .xls, .csv">
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-6">
+                <label class="form-label fw-bold">2. Shift</label>
+                <select id="shift" class="form-select">
+                    <option value="Shift 1 (06.00 - 14.00)">Shift 1</option>
+                    <option value="Shift 2 (14.00 - 22.00)" selected>Shift 2</option>
+                    <option value="Shift 3 (22.00 - 06.00)">Shift 3</option>
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label fw-bold">3. Tanggal</label>
+                <input type="date" id="tanggal" class="form-control">
+            </div>
+        </div>
+
+        <button onclick="prosesData()" class="btn btn-primary w-100">PROSES & DOWNLOAD HASIL AKHIR</button>
+        <div id="notif" class="text-center small"></div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('tanggal').valueAsDate = new Date();
+
+    function prosesData() {
+        const fileInput = document.getElementById('inputFile');
+        const notif = document.getElementById('notif');
+
+        if (!fileInput.files[0]) return alert("Pilih file dulu!");
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                
+                // Konversi ke Array of Arrays dulu untuk mencari baris header yang sebenarnya
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                
+                // Cari indeks baris di mana terdapat kata "NOMOR TIKET" atau "INCIDENT"
+                let headerIndex = rows.findIndex(row => 
+                    row.some(cell => cell && String(cell).toUpperCase().includes("NOMOR TIKET"))
+                );
+
+                if (headerIndex === -1) {
+                    // Jika tidak ketemu, coba cari kata "INCIDENT"
+                    headerIndex = rows.findIndex(row => 
+                        row.some(cell => cell && String(cell).toUpperCase().includes("INCIDENT"))
+                    );
+                }
+
+                // Jika masih tidak ketemu, default ke 0, jika ketemu kita ambil data dari baris tersebut
+                const finalRawData = XLSX.utils.sheet_to_json(sheet, { range: headerIndex >= 0 ? headerIndex : 0 });
+
+                if (finalRawData.length === 0) throw new Error("Data tidak ditemukan.");
+
+                const shift = document.getElementById('shift').value;
+                const tgl = document.getElementById('tanggal').value;
+
+                let reportData = [
+                    ["FORM LAPORAN SELESAI DINASAN NOC-SA"],
+                    [],
+                    ["Nama", ": Hannan Fakhrul Hakim"],
+                    ["Dinasan", ": " + shift],
+                    ["Tanggal", ": " + tgl],
+                    ["Job", ": Security Analyst"],
+                    [],
+                    ["No", "Nomor Tiket", "Submit Date", "Status", "Assigned To", "Konfirm IT Support", "Konfirm User", "Keterangan", "Kesesuaian"]
+                ];
+
+                let counts = { "Assigned": 0, "Pending": 0, "Resolved": 0, "Closed": 0, "In Progress": 0 };
+                const locs = ["Daop", "Divre", "Balayasa", "Yogyakarta", "Tegal", "Gubeng"];
+
+                finalRawData.forEach((row, i) => {
+                    const getVal = (names) => {
+                        const key = Object.keys(row).find(k => 
+                            names.some(name => k.trim().toUpperCase() === name.toUpperCase())
+                        );
+                        return key ? row[key] : "-";
+                    };
+
+                    const noTiket = getVal(["NOMOR TIKET", "INCIDENT NUMBER", "INCIDENT ID*+", "TICKET NO", "INCIDENT ID"]);
+                    const sDate = getVal(["SUBMIT DATE", "SUBMIT DATE WORK INFO", "REPORTED DATE"]);
+                    const stat = getVal(["STATUS", "STATUS*"]);
+                    const assigned = getVal(["ASSIGNED TO", "ASSIGNED GROUP*+", "ASSIGNEE GROUP"]);
+
+                    const statUpper = String(stat).toUpperCase();
+                    if (statUpper.includes("RESOLVED")) counts["Resolved"]++;
+                    else if (statUpper.includes("PENDING")) counts["Pending"]++;
+                    else if (statUpper.includes("ASSIGNED")) counts["Assigned"]++;
+                    else if (statUpper.includes("CLOSED")) counts["Closed"]++;
+                    else if (statUpper.includes("PROGRESS")) counts["In Progress"]++;
+
+                    let ket = "";
+                    const assignedStr = String(assigned).toLowerCase();
+                    const isRegion = locs.some(l => assignedStr.includes(l.toLowerCase()));
+                    
+                    if ((statUpper.includes("PENDING") || statUpper.includes("ASSIGNED")) && isRegion) {
+                        ket = `Sudah dikoordinasikan dengan team IT ${assigned}`;
+                    } else if (statUpper.includes("PENDING") && assignedStr.includes("security")) {
+                        ket = "Sudah dikoordinasikan dengan team IT Security";
+                    }
+
+                    reportData.push([i + 1, noTiket, sDate, stat, assigned, "Proses by Hannan", "", ket, "Sesuai"]);
+                });
+
+                reportData.push([], ["SUMMARY TICKET STATUS"]);
+                Object.keys(counts).forEach(k => {
+                    if(counts[k] > 0) reportData.push([k, counts[k]]);
+                });
+                reportData.push(["Grand Total", finalRawData.length]);
+
+                const newSheet = XLSX.utils.aoa_to_sheet(reportData);
+                newSheet['!cols'] = [{wch: 5}, {wch: 22}, {wch: 22}, {wch: 12}, {wch: 25}, {wch: 20}, {wch: 15}, {wch: 45}, {wch: 12}];
+
+                const newWB = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWB, newSheet, "Laporan");
+                XLSX.writeFile(newWB, `Laporan_NOC_${tgl}.xlsx`);
+                
+                notif.innerHTML = "<span class='text-success'>✅ Sukses! Data INC berhasil ditarik.</span>";
+            } catch (err) {
+                notif.innerHTML = `<span class='text-danger'>❌ Error: ${err.message}</span>`;
+            }
+        };
+        reader.readAsArrayBuffer(fileInput.files[0]);
+    }
+</script>
+</body>
+</html>
