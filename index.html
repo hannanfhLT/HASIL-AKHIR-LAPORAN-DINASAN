@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Converter Laporan NOC-SA (Filter Duplikat)</title>
+    <title>Converter Laporan NOC-SA</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -29,14 +29,66 @@
           <div class="col-6">
             <label class="form-label fw-bold">2. Shift</label>
             <select id="shift" class="form-select">
-              <option value="Shift 1 (06.00 - 14.00)">Shift 1</option>
-              <option value="Shift 2 (14.00 - 22.00)" selected>Shift 2</option>
-              <option value="Shift 3 (22.00 - 06.00)">Shift 3</option>
+              <option value="Shift 1 (06.00 - 14.00)">
+                Shift 1 (06.00 - 14.00)
+              </option>
+              <option value="Shift 2 (14.00 - 22.00)" selected>
+                Shift 2 (14.00 - 22.00)
+              </option>
+              <option value="Shift 3 (22.00 - 06.00)">
+                Shift 3 (22.00 - 06.00)
+              </option>
             </select>
           </div>
           <div class="col-6">
             <label class="form-label fw-bold">3. Tanggal</label>
             <input type="date" id="tanggal" class="form-control" />
+          </div>
+        </div>
+
+        <!-- FITUR BARU: Pilihan Nama Petugas -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">4. Nama Petugas</label>
+          <div class="row">
+            <div class="col-8">
+              <select id="namaPetugas" class="form-select">
+                <option value="">-- Pilih Nama Petugas --</option>
+                <option value="Hannan Fakhrul Hakim" selected>
+                  Hannan Fakhrul Hakim
+                </option>
+                <option value="Andre Hilmi Pratama">Andre Hilmi Pratama</option>
+                <option value="Gylang Satria Yudha">Gylang Satria Yudha</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <button
+                type="button"
+                id="btnCustomNama"
+                class="btn btn-outline-secondary w-100"
+              >
+                + Custom
+              </button>
+            </div>
+          </div>
+          <div id="customNamaWrapper" style="display: none; margin-top: 10px">
+            <div class="input-group">
+              <input
+                type="text"
+                id="customNama"
+                class="form-control"
+                placeholder="Masukkan nama lengkap"
+              />
+              <button type="button" id="btnApplyCustom" class="btn btn-primary">
+                Gunakan
+              </button>
+              <button
+                type="button"
+                id="btnCancelCustom"
+                class="btn btn-secondary"
+              >
+                Batal
+              </button>
+            </div>
           </div>
         </div>
 

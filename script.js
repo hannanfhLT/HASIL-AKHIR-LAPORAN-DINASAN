@@ -11,6 +11,7 @@ const CONFIG = {
   DATE_KEYS: ["SUBMIT DATE", "SUBMIT DATE WORK INFO", "REPORTED DATE"],
   STATUS_KEYS: ["STATUS", "STATUS*"],
   ASSIGNED_KEYS: ["ASSIGNED TO", "ASSIGNED GROUP*+", "ASSIGNEE GROUP"],
+  DEFAULT_PETUGAS: "Hannan Fakhrul Hakim",
 };
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -112,6 +113,20 @@ function filterUniqueTickets(data) {
   return uniqueMap;
 }
 
+/**
+ * Mendapatkan nama petugas yang dipilih
+ */
+function getSelectedPetugas() {
+  const selectElement = document.getElementById("namaPetugas");
+  const selectedValue = selectElement.value;
+
+  if (selectedValue && selectedValue !== "") {
+    return selectedValue;
+  }
+
+  return CONFIG.DEFAULT_PETUGAS;
+}
+
 // ==================== MAIN PROCESS FUNCTION ====================
 
 async function prosesData() {
@@ -149,15 +164,17 @@ async function prosesData() {
       const uniqueTicketsMap = filterUniqueTickets(rawData);
       const duplicateCount = rawData.length - uniqueTicketsMap.size;
 
-      // Ambil nilai shift dan tanggal
+      // Ambil nilai shift, tanggal, dan nama petugas
       const shift = document.getElementById("shift").value;
       const tgl = document.getElementById("tanggal").value;
+      const namaPetugas = getSelectedPetugas();
 
       // Bangun laporan
       const reportData = buildReportData(
         uniqueTicketsMap,
         shift,
         tgl,
+        namaPetugas,
         duplicateCount,
       );
 
@@ -177,10 +194,13 @@ async function prosesData() {
 
       const newWB = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(newWB, newSheet, "Laporan");
-      XLSX.writeFile(newWB, `Laporan_NOC_${tgl}.xlsx`);
+      XLSX.writeFile(
+        newWB,
+        `Laporan_NOC_${tgl}_${namaPetugas.replace(/\s/g, "_")}.xlsx`,
+      );
 
       // Notifikasi sukses
-      let notifMessage = `<span class='text-success'>✅ Sukses! ${uniqueTicketsMap.size} tiket unik diproses.`;
+      let notifMessage = `<span class='text-success'>✅ Sukses! ${uniqueTicketsMap.size} tiket unik diproses.<br>👤 Petugas: ${namaPetugas}`;
       if (duplicateCount > 0) {
         notifMessage += `<br>⚠️ ${duplicateCount} data duplikat otomatis dihapus.</span>`;
       } else {
@@ -201,12 +221,18 @@ async function prosesData() {
 
 // ==================== BUILD REPORT FUNCTION ====================
 
-function buildReportData(uniqueTicketsMap, shift, tgl, duplicateCount) {
+function buildReportData(
+  uniqueTicketsMap,
+  shift,
+  tgl,
+  namaPetugas,
+  duplicateCount,
+) {
   // Header laporan
   const reportData = [
     ["FORM LAPORAN SELESAI DINASAN NOC-SA"],
     [],
-    ["Nama", ": Hannan Fakhrul Hakim"],
+    ["Nama", ": " + namaPetugas],
     ["Dinasan", ": " + shift],
     ["Tanggal", ": " + tgl],
     ["Job", ": Security Analyst"],
@@ -258,7 +284,7 @@ function buildReportData(uniqueTicketsMap, shift, tgl, duplicateCount) {
       submitDate,
       status,
       assigned,
-      "Proses by Hannan",
+      `Proses by ${namaPetugas.split(" ")[0]}`, // Menggunakan nama depan petugas
       "",
       keterangan,
       "Sesuai",
@@ -283,10 +309,81 @@ function buildReportData(uniqueTicketsMap, shift, tgl, duplicateCount) {
   return reportData;
 }
 
+// ==================== CUSTOM NAME HANDLERS ====================
+
+/**
+ * Setup custom name input handlers
+ */
+function setupCustomNameHandlers() {
+  const btnCustom = document.getElementById("btnCustomNama");
+  const customWrapper = document.getElementById("customNamaWrapper");
+  const btnApply = document.getElementById("btnApplyCustom");
+  const btnCancel = document.getElementById("btnCancelCustom");
+  const customInput = document.getElementById("customNama");
+  const selectPetugas = document.getElementById("namaPetugas");
+
+  // Tombol Custom diklik
+  btnCustom.addEventListener("click", () => {
+    customWrapper.style.display = "block";
+    customInput.value = "";
+    customInput.focus();
+    btnCustom.disabled = true;
+  });
+
+  // Tombol Apply diklik
+  btnApply.addEventListener("click", () => {
+    const customName = customInput.value.trim();
+    if (customName === "") {
+      alert("Masukkan nama petugas terlebih dahulu!");
+      return;
+    }
+
+    // Tambahkan ke dropdown
+    const newOption = document.createElement("option");
+    newOption.value = customName;
+    newOption.textContent = customName;
+    selectPetugas.appendChild(newOption);
+
+    // Pilih nama baru tersebut
+    selectPetugas.value = customName;
+
+    // Reset UI
+    customWrapper.style.display = "none";
+    btnCustom.disabled = false;
+    customInput.value = "";
+
+    // Notifikasi kecil
+    const notif = document.getElementById("notif");
+    notif.innerHTML = `<span class='text-success'>✅ Nama "${customName}" ditambahkan ke daftar!</span>`;
+    setTimeout(() => {
+      if (notif.innerHTML.includes("ditambahkan")) {
+        notif.innerHTML = "";
+      }
+    }, 2000);
+  });
+
+  // Tombol Cancel diklik
+  btnCancel.addEventListener("click", () => {
+    customWrapper.style.display = "none";
+    btnCustom.disabled = false;
+    customInput.value = "";
+  });
+
+  // Optional: Enter key pada input custom
+  customInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      btnApply.click();
+    }
+  });
+}
+
 // ==================== INITIALIZATION ====================
 
 // Set tanggal default = hari ini
 document.getElementById("tanggal").valueAsDate = new Date();
+
+// Setup custom name handlers
+setupCustomNameHandlers();
 
 // Event listener untuk tombol proses
 document.getElementById("prosesBtn").addEventListener("click", prosesData);
