@@ -19,25 +19,120 @@ const CONFIG = {
 /**
  * Mendapatkan nilai dari row berdasarkan kemungkinan nama kolom
  */
+// function getValueFromRow(row, possibleKeys) {
+//   const key = Object.keys(row).find((k) =>
+//     possibleKeys.some((name) => k.trim().toUpperCase() === name.toUpperCase()),
+//   );
+//   return key ? row[key] : "-";
+// }
+
 function getValueFromRow(row, possibleKeys) {
-  const key = Object.keys(row).find((k) =>
-    possibleKeys.some((name) => k.trim().toUpperCase() === name.toUpperCase()),
-  );
+  const normalize = (str) =>
+    String(str)
+      .replace(/\n/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+
+  const keys = Object.keys(row);
+
+  const key = keys.find((k) => {
+    const normalizedKey = normalize(k);
+
+    return possibleKeys.some((name) => {
+      const normalizedName = normalize(name);
+
+      return (
+        normalizedKey.includes(normalizedName) ||
+        normalizedName.includes(normalizedKey)
+      );
+    });
+  });
+
   return key ? row[key] : "-";
+}
+
+/**
+ * Mengkonversi date Excel menjadi string tanggal yang dapat dibaca
+ */
+function formatExcelDate(value) {
+  if (value === null || value === undefined || value === "-" || value === "") return "-";
+
+  // Jika sudah berupa JavaScript Date object (dari cellDates: true)
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return "-";
+    const month = value.getMonth() + 1;
+    const day = value.getDate();
+    const year = value.getFullYear();
+    let hours = value.getHours();
+    const minutes = String(value.getMinutes()).padStart(2, "0");
+    const seconds = String(value.getSeconds()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+
+  // Jika sudah berupa string tanggal yang terbaca (bukan angka murni)
+  if (typeof value === "string" && isNaN(Number(value))) {
+    return value.trim();
+  }
+
+  // Jika berupa angka serial Excel
+  if (typeof value === "number") {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // 30 Des 1899
+    const msPerDay = 86400000;
+    const jsDate = new Date(excelEpoch.getTime() + value * msPerDay);
+
+    if (isNaN(jsDate.getTime())) return String(value);
+
+    const month = jsDate.getUTCMonth() + 1;
+    const day = jsDate.getUTCDate();
+    const year = jsDate.getUTCFullYear();
+    let hours = jsDate.getUTCHours();
+    const minutes = String(jsDate.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(jsDate.getUTCSeconds()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+
+  return String(value);
 }
 
 /**
  * Mengekstrak nomor tiket dari row
  */
+// function extractTicketNumber(row) {
+//   let rawTicket = getValueFromRow(row, CONFIG.TICKET_KEYS);
+//   let cleanTicket = String(rawTicket).trim().toUpperCase();
+
+//   if (!cleanTicket || cleanTicket === "-" || cleanTicket === "UNDEFINED") {
+//     return null;
+//   }
+//   return { raw: String(rawTicket).trim(), clean: cleanTicket };
+// }
+
 function extractTicketNumber(row) {
   let rawTicket = getValueFromRow(row, CONFIG.TICKET_KEYS);
-  let cleanTicket = String(rawTicket).trim().toUpperCase();
 
-  if (!cleanTicket || cleanTicket === "-" || cleanTicket === "UNDEFINED") {
-    return null;
-  }
-  return { raw: String(rawTicket).trim(), clean: cleanTicket };
+  if (!rawTicket) return null;
+
+  const text = String(rawTicket).replace(/\n/g, " ").trim();
+  if (/^incident\s+number\s*:/i.test(text)) return null;
+
+  // Ambil hanya format INCxxxxxxxx
+  const match = text.match(/INC\d+/i);
+
+  if (!match) return null;
+
+  const ticketNumber = match[0].toUpperCase();
+
+  return {
+    raw: ticketNumber,
+    clean: ticketNumber,
+  };
 }
+
 
 /**
  * Menentukan status count berdasarkan status string
@@ -97,14 +192,43 @@ function findHeaderRow(rows) {
 /**
  * Filter duplikat berdasarkan nomor tiket (hanya ambil 1 tiket)
  */
+// function filterUniqueTickets(data) {
+//   const uniqueMap = new Map();
+
+//   data.forEach((row) => {
+//     const ticket = extractTicketNumber(row);
+//     if (ticket && !uniqueMap.has(ticket.clean)) {
+//       uniqueMap.set(ticket.clean, {
+//         rowAsli: row,
+//         tiketAsli: ticket.raw,
+//       });
+//     }
+//   });
+
+//   return uniqueMap;
+// }
+
 function filterUniqueTickets(data) {
   const uniqueMap = new Map();
 
   data.forEach((row) => {
     const ticket = extractTicketNumber(row);
-    if (ticket && !uniqueMap.has(ticket.clean)) {
-      uniqueMap.set(ticket.clean, {
-        rowAsli: row,
+
+    // Skip kalau bukan tiket valid
+    if (!ticket) return;
+
+    // Ambil submit date
+    const submitDate = formatExcelDate(
+      getValueFromRow(row, CONFIG.DATE_KEYS),
+    );
+
+    // Kombinasi tiket + waktu submit
+    const uniqueKey = `${ticket.clean}__${submitDate}`;
+
+    // Simpan hanya jika kombinasi belum ada
+    if (!uniqueMap.has(uniqueKey)) {
+      uniqueMap.set(uniqueKey, {
+        rowAsli: { ...row },
         tiketAsli: ticket.raw,
       });
     }
@@ -149,16 +273,39 @@ async function prosesData() {
   reader.onload = function (e) {
     try {
       const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
+      const workbook = XLSX.read(data, { type: "array", cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
       const headerIndex = findHeaderRow(rows);
-      const rawData = XLSX.utils.sheet_to_json(sheet, {
+      // const rawData = XLSX.utils.sheet_to_json(sheet, {
+      //   range: headerIndex,
+      // });
+      const rawRows = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
         range: headerIndex,
       });
 
-      if (rawData.length === 0) throw new Error("Data tidak ditemukan.");
+      // Ambil header asli
+      const headers = rawRows[0].map((h) =>
+        String(h || "")
+          .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      );
+
+      // Convert manual ke object
+      const rawData = rawRows.slice(1).map((row) => {
+        const obj = {};
+
+        headers.forEach((header, index) => {
+          obj[header] = row[index];
+        });
+
+        return obj;
+      });
+
+      if (rawRows.length === 0) throw new Error("Data tidak ditemukan.");
 
       // Filter duplikat tiket
       const uniqueTicketsMap = filterUniqueTickets(rawData);
@@ -266,7 +413,7 @@ function buildReportData(
     const row = dataItem.rowAsli;
     const tiketTampil = dataItem.tiketAsli;
 
-    const submitDate = getValueFromRow(row, CONFIG.DATE_KEYS);
+    const submitDate = formatExcelDate(getValueFromRow(row, CONFIG.DATE_KEYS));
     const status = getValueFromRow(row, CONFIG.STATUS_KEYS);
     const assigned = getValueFromRow(row, CONFIG.ASSIGNED_KEYS);
 
