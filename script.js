@@ -217,15 +217,11 @@ function filterUniqueTickets(data) {
     // Skip kalau bukan tiket valid
     if (!ticket) return;
 
-    // Ambil submit date
-    const submitDate = formatExcelDate(
-      getValueFromRow(row, CONFIG.DATE_KEYS),
-    );
+    // KUNCI UTAMA: Gunakan HANYA nomor tiket yang sudah bersih
+    // Jangan gabungkan dengan submitDate agar benar-benar tidak ada duplikat
+    const uniqueKey = ticket.clean;
 
-    // Kombinasi tiket + waktu submit
-    const uniqueKey = `${ticket.clean}__${submitDate}`;
-
-    // Simpan hanya jika kombinasi belum ada
+    // Simpan hanya jika Nomor Tiket (uniqueKey) tersebut belum ada di dalam Map
     if (!uniqueMap.has(uniqueKey)) {
       uniqueMap.set(uniqueKey, {
         rowAsli: { ...row },
