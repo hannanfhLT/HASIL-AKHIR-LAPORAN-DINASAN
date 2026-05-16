@@ -1,65 +1,29 @@
 // ==================== KONSTANTA & KONFIGURASI ====================
 const CONFIG = {
   LOCATIONS: ["Daop", "Divre", "Balayasa Yogyakarta", "Balayasa Tegal", "Balayasa Gubeng", "Balayasa Manggarai", "Balayasa Surabaya Gubeng", "Balayasa Pulubrayan"],
-  TICKET_KEYS: [
-    "NOMOR TIKET",
-    "INCIDENT NUMBER",
-    "INCIDENT ID*+",
-    "TICKET NO",
-    "INCIDENT ID",
-  ],
+  TICKET_KEYS: ["NOMOR TIKET", "INCIDENT NUMBER", "INCIDENT ID*+", "TICKET NO", "INCIDENT ID"],
   DATE_KEYS: ["SUBMIT DATE", "SUBMIT DATE WORK INFO", "REPORTED DATE"],
   STATUS_KEYS: ["STATUS", "STATUS*"],
   ASSIGNED_KEYS: ["ASSIGNED TO", "ASSIGNED GROUP*+", "ASSIGNEE GROUP"],
-  CONFIRM_KEYS: ["KONFIRM USER"],
   DEFAULT_PETUGAS: "Hannan Fakhrul Hakim",
 };
 
 // ==================== UTILITY FUNCTIONS ====================
-
-/**
- * Mendapatkan nilai dari row berdasarkan kemungkinan nama kolom
- */
-// function getValueFromRow(row, possibleKeys) {
-//   const key = Object.keys(row).find((k) =>
-//     possibleKeys.some((name) => k.trim().toUpperCase() === name.toUpperCase()),
-//   );
-//   return key ? row[key] : "-";
-// }
-
 function getValueFromRow(row, possibleKeys) {
-  const normalize = (str) =>
-    String(str)
-      .replace(/\n/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toUpperCase();
-
+  const normalize = (str) => String(str).replace(/\n/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
   const keys = Object.keys(row);
-
   const key = keys.find((k) => {
     const normalizedKey = normalize(k);
-
     return possibleKeys.some((name) => {
       const normalizedName = normalize(name);
-
-      return (
-        normalizedKey.includes(normalizedName) ||
-        normalizedName.includes(normalizedKey)
-      );
+      return normalizedKey.includes(normalizedName) || normalizedName.includes(normalizedKey);
     });
   });
-
   return key ? row[key] : "-";
 }
 
-/**
- * Mengkonversi date Excel menjadi string tanggal yang dapat dibaca
- */
 function formatExcelDate(value) {
   if (value === null || value === undefined || value === "-" || value === "") return "-";
-
-  // Jika sudah berupa JavaScript Date object (dari cellDates: true)
   if (value instanceof Date) {
     if (isNaN(value.getTime())) return "-";
     const month = value.getMonth() + 1;
@@ -72,20 +36,12 @@ function formatExcelDate(value) {
     hours = hours % 12 || 12;
     return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
   }
-
-  // Jika sudah berupa string tanggal yang terbaca (bukan angka murni)
-  if (typeof value === "string" && isNaN(Number(value))) {
-    return value.trim();
-  }
-
-  // Jika berupa angka serial Excel
+  if (typeof value === "string" && isNaN(Number(value))) return value.trim();
   if (typeof value === "number") {
-    const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // 30 Des 1899
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
     const msPerDay = 86400000;
     const jsDate = new Date(excelEpoch.getTime() + value * msPerDay);
-
     if (isNaN(jsDate.getTime())) return String(value);
-
     const month = jsDate.getUTCMonth() + 1;
     const day = jsDate.getUTCDate();
     const year = jsDate.getUTCFullYear();
@@ -96,36 +52,19 @@ function formatExcelDate(value) {
     hours = hours % 12 || 12;
     return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
   }
-
   return String(value);
 }
 
-
 function extractTicketNumber(row) {
   let rawTicket = getValueFromRow(row, CONFIG.TICKET_KEYS);
-
   if (!rawTicket) return null;
-
   const text = String(rawTicket).replace(/\n/g, " ").trim();
   if (/^incident\s+number\s*:/i.test(text)) return null;
-
-  // Ambil hanya format INCxxxxxxxx
   const match = text.match(/INC\d+/i);
-
   if (!match) return null;
-
   const ticketNumber = match[0].toUpperCase();
-
-  return {
-    raw: ticketNumber,
-    clean: ticketNumber,
-  };
+  return { raw: ticketNumber, clean: ticketNumber };
 }
-
-
-/**
- * Menentukan status count berdasarkan status string
- */
 
 function getStatusCategory(status) {
   const upperStatus = String(status).toUpperCase();
@@ -137,116 +76,60 @@ function getStatusCategory(status) {
   return null;
 }
 
-/**
- * Menentukan isi otomatis untuk kolom Konfirm User
- */
 function getConfirm(status, assigned) {
   const upperStatus = String(status).toUpperCase();
   const assignedStr = String(assigned).toLowerCase();
-  
-  // Cek apakah assigned ada di dalam CONFIG.LOCATIONS
-  const isRegion = CONFIG.LOCATIONS.some((l) =>
-    assignedStr.includes(l.toLowerCase())
-  );
-
-  // Jika Status mengandung "ASSIGNED" dan Assigned To sesuai LOCATIONS
-  if (upperStatus.includes("ASSIGNED") && isRegion) {
+  const isRegion = CONFIG.LOCATIONS.some((l) => assignedStr.includes(l.toLowerCase()));
+  if ((upperStatus.includes("ASSIGNED") || upperStatus.includes("PENDING")) && isRegion) {
     return "Sudah";
   }
-  
-
-  // Jika tidak memenuhi syarat, biarkan kosong (atau sesuaikan dengan kebutuhan)
   return ""; 
 }
 
-/**
- * Menentukan keterangan otomatis
- */
-function generateKeterangan(status, assigned, confirmations) {
+function generateKeterangan(status, assigned) {
   const upperStatus = String(status).toUpperCase();
   const assignedStr = String(assigned).toLowerCase();
-  
-  const isRegion = CONFIG.LOCATIONS.some((l) =>
-    assignedStr.includes(l.toLowerCase())
-  );
-
-  if (
-    (upperStatus.includes("PENDING") || upperStatus.includes("ASSIGNED")) &&
-    isRegion
-  ) {
+  const isRegion = CONFIG.LOCATIONS.some((l) => assignedStr.includes(l.toLowerCase()));
+  if ((upperStatus.includes("PENDING") || upperStatus.includes("ASSIGNED")) && isRegion) {
     return `Sudah dikoordinasikan dengan team IT ${assigned}`;
   }
   if (upperStatus.includes("PENDING") && assignedStr.includes("security")) {
     return "Sudah dikoordinasikan dengan team IT Security";
   }
-  if ((upperStatus.includes("ASSIGNED") || upperStatus.includes("PENDING")) && isRegion) {
-    return "Sudah";
-  }
   return "";
 }
 
-/**
- * Mencari baris header dari data mentah
- */
 function findHeaderRow(rows) {
   let headerIndex = rows.findIndex((row) =>
-    row.some(
-      (cell) => cell && String(cell).toUpperCase().includes("NOMOR TIKET"),
-    ),
+    row.some((cell) => cell && String(cell).toUpperCase().includes("NOMOR TIKET"))
   );
-
   if (headerIndex === -1) {
     headerIndex = rows.findIndex((row) =>
-      row.some(
-        (cell) => cell && String(cell).toUpperCase().includes("INCIDENT"),
-      ),
+      row.some((cell) => cell && String(cell).toUpperCase().includes("INCIDENT"))
     );
   }
   return headerIndex >= 0 ? headerIndex : 0;
 }
 
-
 function filterUniqueTickets(data) {
   const uniqueMap = new Map();
-
   data.forEach((row) => {
     const ticket = extractTicketNumber(row);
-
-    // Skip kalau bukan tiket valid
     if (!ticket) return;
-
-    // KUNCI UTAMA: Gunakan HANYA nomor tiket yang sudah bersih
-    // Jangan gabungkan dengan submitDate agar benar-benar tidak ada duplikat
     const uniqueKey = ticket.clean;
-
-    // Simpan hanya jika Nomor Tiket (uniqueKey) tersebut belum ada di dalam Map
     if (!uniqueMap.has(uniqueKey)) {
-      uniqueMap.set(uniqueKey, {
-        rowAsli: { ...row },
-        tiketAsli: ticket.raw,
-      });
+      uniqueMap.set(uniqueKey, { rowAsli: { ...row }, tiketAsli: ticket.clean });
     }
   });
-
   return uniqueMap;
 }
 
-/**
- * Mendapatkan nama petugas yang dipilih
- */
 function getSelectedPetugas() {
   const selectElement = document.getElementById("namaPetugas");
-  const selectedValue = selectElement.value;
-
-  if (selectedValue && selectedValue !== "") {
-    return selectedValue;
-  }
-
-  return CONFIG.DEFAULT_PETUGAS;
+  return selectElement.value || CONFIG.DEFAULT_PETUGAS;
 }
 
 // ==================== MAIN PROCESS FUNCTION ====================
-
 async function prosesData() {
   const fileInput = document.getElementById("inputFile");
   const notif = document.getElementById("notif");
@@ -257,10 +140,9 @@ async function prosesData() {
     return;
   }
 
-  // Disable button selama proses
   prosesBtn.disabled = true;
   prosesBtn.textContent = "PROSES...";
-  notif.innerHTML = "<span class='text-info'>⏳ Memproses data...</span>";
+  notif.innerHTML = "<span class='text-info'>⏳ Memproses data & mengatur layout tabel...</span>";
 
   const reader = new FileReader();
 
@@ -270,86 +152,87 @@ async function prosesData() {
       const workbook = XLSX.read(data, { type: "array", cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
       const headerIndex = findHeaderRow(rows);
-  
-      const rawRows = XLSX.utils.sheet_to_json(sheet, {
-        header: 1,
-        range: headerIndex,
-      });
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, range: headerIndex });
 
-      // Ambil header asli
-      const headers = rawRows[0].map((h) =>
-        String(h || "")
-          .replace(/\n/g, " ")
-          .replace(/\s+/g, " ")
-          .trim(),
-      );
-
-      // Convert manual ke object
+      const headers = rawRows[0].map((h) => String(h || "").replace(/\n/g, " ").replace(/\s+/g, " ").trim());
       const rawData = rawRows.slice(1).map((row) => {
         const obj = {};
-
-        headers.forEach((header, index) => {
-          obj[header] = row[index];
-        });
-
+        headers.forEach((header, index) => { obj[header] = row[index]; });
         return obj;
       });
 
       if (rawRows.length === 0) throw new Error("Data tidak ditemukan.");
 
-      // Filter duplikat tiket
       const uniqueTicketsMap = filterUniqueTickets(rawData);
       const duplicateCount = rawData.length - uniqueTicketsMap.size;
 
-      // Ambil nilai shift, tanggal, dan nama petugas
       const shift = document.getElementById("shift").value;
       const tgl = document.getElementById("tanggal").value;
       const namaPetugas = getSelectedPetugas();
 
-      // Bangun laporan
-      const reportData = buildReportData(
-        uniqueTicketsMap,
-        shift,
-        tgl,
-        namaPetugas,
-        duplicateCount,
-      );
+      const reportData = buildReportData(uniqueTicketsMap, shift, tgl, namaPetugas, duplicateCount);
 
-      // Buat file Excel
+      // =========================================================
+      // PEMBUATAN EXCEL & PEMBERIAN WARNA + BORDER
+      // =========================================================
       const newSheet = XLSX.utils.aoa_to_sheet(reportData);
+      
+      const headerRowIndex = 7; // Header tabel ada di array index 7
+      const totalDataRows = uniqueTicketsMap.size;
+      const thinBorder = {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      };
+
+      for (let R = headerRowIndex; R <= headerRowIndex + totalDataRows; ++R) {
+        for (let C = 0; C < 9; ++C) {
+          const cell_ref = XLSX.utils.encode_cell({ r: R, c: C });
+          
+          if (!newSheet[cell_ref]) newSheet[cell_ref] = { t: 's', v: '' };
+
+          const cell = newSheet[cell_ref];
+          cell.s = cell.s || {};
+
+          if (R === headerRowIndex) {
+            // WARNA BIRU LANGIT (87CEEB)
+            cell.s = {
+              fill: { fgColor: { rgb: "87CEEB" } },
+              font: { bold: true, name: "Segoe UI", sz: 11 },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: thinBorder
+            };
+          } else {
+            cell.s = {
+              font: { name: "Segoe UI", sz: 10 },
+              alignment: { vertical: "center" },
+              border: thinBorder
+            };
+            if (C === 0 || C === 3 || C === 5 || C === 6 || C === 8) {
+              cell.s.alignment.horizontal = "center";
+            }
+          }
+        }
+      }
+
       newSheet["!cols"] = [
-        { wch: 5 },
-        { wch: 22 },
-        { wch: 22 },
-        { wch: 12 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 45 },
-        { wch: 12 },
+        { wch: 5 }, { wch: 22 }, { wch: 22 }, { wch: 12 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 45 }, { wch: 12 }
       ];
 
       const newWB = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(newWB, newSheet, "Laporan");
-      XLSX.writeFile(
-        newWB,
-        `Laporan_NOC_${tgl}_${namaPetugas.replace(/\s/g, "_")}.xlsx`,
-      );
+      XLSX.writeFile(newWB, `Laporan_NOC_${tgl}_${namaPetugas.replace(/\s/g, "_")}.xlsx`);
 
-      // Notifikasi sukses
-      let notifMessage = `<span class='text-success'>✅ Sukses! ${uniqueTicketsMap.size} tiket unik diproses.<br>👤 Petugas: ${namaPetugas}`;
-      if (duplicateCount > 0) {
-        notifMessage += `<br>⚠️ ${duplicateCount} data duplikat otomatis dihapus.</span>`;
-      } else {
-        notifMessage += `</span>`;
-      }
+      let notifMessage = `<span class='text-success'>✅ Sukses! Excel sudah bergaris dan berwarna.<br>👤 Petugas: ${namaPetugas}`;
+      if (duplicateCount > 0) notifMessage += `<br>⚠️ ${duplicateCount} data duplikat otomatis dihapus.</span>`;
+      else notifMessage += `</span>`;
       notif.innerHTML = notifMessage;
+
     } catch (err) {
       notif.innerHTML = `<span class='text-danger'>❌ Error: ${err.message}</span>`;
     } finally {
-      // Enable button kembali
       prosesBtn.disabled = false;
       prosesBtn.textContent = "PROSES & DOWNLOAD HASIL AKHIR";
     }
@@ -359,15 +242,7 @@ async function prosesData() {
 }
 
 // ==================== BUILD REPORT FUNCTION ====================
-
-function buildReportData(
-  uniqueTicketsMap,
-  shift,
-  tgl,
-  namaPetugas,
-  duplicateCount,
-) {
-  // Header laporan
+function buildReportData(uniqueTicketsMap, shift, tgl, namaPetugas, duplicateCount) {
   const reportData = [
     ["FORM LAPORAN SELESAI DINASAN NOC-SA"],
     [],
@@ -376,31 +251,12 @@ function buildReportData(
     ["Tanggal", ": " + tgl],
     ["Job", ": Security Analyst"],
     [],
-    [
-      "No",
-      "Nomor Tiket",
-      "Submit Date",
-      "Status",
-      "Assigned To",
-      "Konfirm IT Support",
-      "Konfirm User",
-      "Keterangan",
-      "Kesesuaian",
-    ],
+    ["No", "Nomor Tiket", "Submit Date", "Status", "Assigned To", "Konfirm IT Support", "Konfirm User", "Keterangan", "Kesesuaian"]
   ];
 
-  // Inisialisasi counter status
-  const counts = {
-    Assigned: 0,
-    Pending: 0,
-    Resolved: 0,
-    Closed: 0,
-    "In Progress": 0,
-  };
-
+  const counts = { Assigned: 0, Pending: 0, Resolved: 0, Closed: 0, "In Progress": 0 };
   let urutanNo = 1;
 
-  // Loop setiap tiket unik
   uniqueTicketsMap.forEach((dataItem) => {
     const row = dataItem.rowAsli;
     const tiketTampil = dataItem.tiketAsli;
@@ -408,33 +264,29 @@ function buildReportData(
     const submitDate = formatExcelDate(getValueFromRow(row, CONFIG.DATE_KEYS));
     const status = getValueFromRow(row, CONFIG.STATUS_KEYS);
     const assigned = getValueFromRow(row, CONFIG.ASSIGNED_KEYS);
-    const confirmations = getConfirm(status, assigned)
 
-    // Update counter status
     const statusCat = getStatusCategory(status);
     if (statusCat && counts.hasOwnProperty(statusCat)) {
       counts[statusCat]++;
     }
 
     const keterangan = generateKeterangan(status, assigned);
-    const konfirmUser = getConfirm(status, assigned)
+    const konfirmUser = getConfirm(status, assigned);
+
     reportData.push([
-      urutanNo,
-      tiketTampil,
-      submitDate,
-      status,
-      assigned,
-      `Proses by ${namaPetugas.split(" ")[0]}`, // Menggunakan nama depan petugas
-      konfirmUser, // <--- MASUKKAN VARIABELNYA KE SINI
-      keterangan,
-      "Sesuai",
-    ]);
+      urutanNo,
+      tiketTampil,
+      submitDate,
+      status,
+      assigned,
+      `Proses by ${namaPetugas.split(" ")[0]}`,
+      konfirmUser,
+      keterangan,
+      "Sesuai"
+    ]);
     urutanNo++;
   });
 
-
-
-  // Tambah summary
   reportData.push([], ["SUMMARY TICKET STATUS"]);
   Object.keys(counts).forEach((k) => {
     if (counts[k] > 0) reportData.push([k, counts[k]]);
@@ -443,19 +295,13 @@ function buildReportData(
   reportData.push(["Grand Total", uniqueTicketsMap.size]);
 
   if (duplicateCount > 0) {
-    reportData.push([
-      `Catatan: ${duplicateCount} data duplikat telah dihapus otomatis`,
-    ]);
+    reportData.push([`Catatan: ${duplicateCount} data duplikat telah dihapus otomatis`]);
   }
 
   return reportData;
 }
 
 // ==================== CUSTOM NAME HANDLERS ====================
-
-/**
- * Setup custom name input handlers
- */
 function setupCustomNameHandlers() {
   const btnCustom = document.getElementById("btnCustomNama");
   const customWrapper = document.getElementById("customNamaWrapper");
@@ -464,7 +310,6 @@ function setupCustomNameHandlers() {
   const customInput = document.getElementById("customNama");
   const selectPetugas = document.getElementById("namaPetugas");
 
-  // Tombol Custom diklik
   btnCustom.addEventListener("click", () => {
     customWrapper.style.display = "block";
     customInput.value = "";
@@ -472,7 +317,6 @@ function setupCustomNameHandlers() {
     btnCustom.disabled = true;
   });
 
-  // Tombol Apply diklik
   btnApply.addEventListener("click", () => {
     const customName = customInput.value.trim();
     if (customName === "") {
@@ -480,52 +324,36 @@ function setupCustomNameHandlers() {
       return;
     }
 
-    // Tambahkan ke dropdown
     const newOption = document.createElement("option");
     newOption.value = customName;
     newOption.textContent = customName;
     selectPetugas.appendChild(newOption);
-
-    // Pilih nama baru tersebut
     selectPetugas.value = customName;
 
-    // Reset UI
     customWrapper.style.display = "none";
     btnCustom.disabled = false;
     customInput.value = "";
 
-    // Notifikasi kecil
     const notif = document.getElementById("notif");
     notif.innerHTML = `<span class='text-success'>✅ Nama "${customName}" ditambahkan ke daftar!</span>`;
-    setTimeout(() => {
-      if (notif.innerHTML.includes("ditambahkan")) {
-        notif.innerHTML = "";
-      }
-    }, 2000);
+    setTimeout(() => { if (notif.innerHTML.includes("ditambahkan")) notif.innerHTML = ""; }, 2000);
   });
 
-  // Tombol Cancel diklik
   btnCancel.addEventListener("click", () => {
     customWrapper.style.display = "none";
     btnCustom.disabled = false;
     customInput.value = "";
   });
 
-  // Optional: Enter key pada input custom
   customInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      btnApply.click();
-    }
+    if (e.key === "Enter") btnApply.click();
   });
 }
 
 // ==================== INITIALIZATION ====================
-
-// Set tanggal default = hari ini
-document.getElementById("tanggal").valueAsDate = new Date();
-
-// Setup custom name handlers
-setupCustomNameHandlers();
-
-// Event listener untuk tombol proses
-document.getElementById("prosesBtn").addEventListener("click", prosesData);
+// Menunggu seluruh elemen HTML selesai dimuat sebelum menjalankan JavaScript
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("tanggal").valueAsDate = new Date();
+  setupCustomNameHandlers();
+  document.getElementById("prosesBtn").addEventListener("click", prosesData);
+});

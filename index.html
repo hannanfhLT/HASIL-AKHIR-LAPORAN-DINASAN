@@ -1,105 +1,425 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Converter Laporan NOC-SA</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="container col-md-6">
-      <div class="upload-card">
-        <h4 class="text-center mb-4">UPLOAD MENTAHAN LAPORAN EXCEL</h4>
+<head>
+  <meta charset="UTF-8">
+  <title>Converter Laporan NOC-SA (Final Pro)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <style>
+    body { background: #f0f2f5; padding: 50px; font-family: 'Segoe UI', sans-serif; }
+    .upload-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .btn-primary { background: #004d99; border: none; padding: 12px; font-weight: bold; }
+    #notif { font-weight: 500; margin-top: 15px; }
+  </style>
+</head>
+<body>
 
-        <div class="mb-3">
-          <label class="form-label fw-bold">1. File Excel Mentah</label>
-          <input
-            type="file"
-            id="inputFile"
-            class="form-control"
-            accept=".xlsx, .xls, .csv"
-          />
-        </div>
+<div class="container col-md-6">
+  <div class="upload-card">
+    <h4 class="text-center mb-4">UPLOAD MENTAHAN LAPORAN EXCEL</h4>
+    
+    <div class="mb-3">
+      <label class="form-label fw-bold">1. File Excel Mentah</label>
+      <input type="file" id="inputFile" class="form-control" accept=".xlsx, .xls, .csv">
+    </div>
 
-        <div class="row mb-3">
-          <div class="col-6">
-            <label class="form-label fw-bold">2. Shift</label>
-            <select id="shift" class="form-select">
-              <option value="Shift 1 (06.00 - 14.00)">
-                Shift 1 (06.00 - 14.00)
-              </option>
-              <option value="Shift 2 (14.00 - 22.00)" selected>
-                Shift 2 (14.00 - 22.00)
-              </option>
-              <option value="Shift 3 (22.00 - 06.00)">
-                Shift 3 (22.00 - 06.00)
-              </option>
-            </select>
-          </div>
-          <div class="col-6">
-            <label class="form-label fw-bold">3. Tanggal</label>
-            <input type="date" id="tanggal" class="form-control" />
-          </div>
-        </div>
-
-        <!-- FITUR BARU: Pilihan Nama Petugas -->
-        <div class="mb-3">
-          <label class="form-label fw-bold">4. Nama Petugas</label>
-          <div class="row">
-            <div class="col-8">
-              <select id="namaPetugas" class="form-select">
-                <option value="">-- Pilih Nama Petugas --</option>
-                <option value="Hannan Fakhrul Hakim" selected>
-                  Hannan Fakhrul Hakim
-                </option>
-                <option value="Andre Hilmi Pratama">Andre Hilmi Pratama</option>
-                <option value="Gylang Satria Yudha">Gylang Satria Yudha</option>
-              </select>
-            </div>
-            <div class="col-4">
-              <button
-                type="button"
-                id="btnCustomNama"
-                class="btn btn-outline-secondary w-100"
-              >
-                + Custom
-              </button>
-            </div>
-          </div>
-          <div id="customNamaWrapper" style="display: none; margin-top: 10px">
-            <div class="input-group">
-              <input
-                type="text"
-                id="customNama"
-                class="form-control"
-                placeholder="Masukkan nama lengkap"
-              />
-              <button type="button" id="btnApplyCustom" class="btn btn-primary">
-                Gunakan
-              </button>
-              <button
-                type="button"
-                id="btnCancelCustom"
-                class="btn btn-secondary"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <button id="prosesBtn" class="btn btn-primary w-100">
-          PROSES & DOWNLOAD HASIL AKHIR
-        </button>
-        <div id="notif" class="text-center small"></div>
+    <div class="row mb-3">
+      <div class="col-6">
+        <label class="form-label fw-bold">2. Shift</label>
+        <select id="shift" class="form-select">
+          <option value="Shift 1 (06.00 - 14.00)">Shift 1</option>
+          <option value="Shift 2 (14.00 - 22.00)" selected>Shift 2</option>
+          <option value="Shift 3 (22.00 - 06.00)">Shift 3</option>
+        </select>
+      </div>
+      <div class="col-6">
+        <label class="form-label fw-bold">3. Tanggal</label>
+        <input type="date" id="tanggal" class="form-control">
       </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="script.js"></script>
-  </body>
+    <div class="mb-3">
+      <label class="form-label fw-bold">4. Petugas NOC-SA</label>
+      <div class="input-group">
+        <select id="namaPetugas" class="form-select">
+          <option value="Hannan Fakhrul Hakim" selected>Hannan Fakhrul Hakim</option>
+        </select>
+        <button class="btn btn-outline-secondary" type="button" id="btnCustomNama">Custom</button>
+      </div>
+    </div>
+
+    <div id="customNamaWrapper" class="mb-3" style="display:none;">
+      <label class="form-label small text-muted">Masukkan Nama Kustom:</label>
+      <div class="input-group input-group-sm">
+        <input type="text" id="customNama" class="form-control" placeholder="Nama Lengkap">
+        <button class="btn btn-success" type="button" id="btnApplyCustom">Apply</button>
+        <button class="btn btn-danger" type="button" id="btnCancelCustom">Batal</button>
+      </div>
+    </div>
+
+    <button id="prosesBtn" class="btn btn-primary w-100">PROSES & DOWNLOAD HASIL AKHIR</button>
+    <div id="notif" class="text-center small"></div>
+  </div>
+</div>
+
+<script>
+// ==================== KONSTANTA & KONFIGURASI ====================
+const CONFIG = {
+  LOCATIONS: ["Daop", "Divre", "Balayasa Yogyakarta", "Balayasa Tegal", "Balayasa Gubeng", "Balayasa Manggarai", "Balayasa Surabaya Gubeng", "Balayasa Pulubrayan"],
+  TICKET_KEYS: ["NOMOR TIKET", "INCIDENT NUMBER", "INCIDENT ID*+", "TICKET NO", "INCIDENT ID"],
+  DATE_KEYS: ["SUBMIT DATE", "SUBMIT DATE WORK INFO", "REPORTED DATE"],
+  STATUS_KEYS: ["STATUS", "STATUS*"],
+  ASSIGNED_KEYS: ["ASSIGNED TO", "ASSIGNED GROUP*+", "ASSIGNEE GROUP"],
+  DEFAULT_PETUGAS: "Hannan Fakhrul Hakim",
+};
+
+// ==================== UTILITY FUNCTIONS ====================
+function getValueFromRow(row, possibleKeys) {
+  const normalize = (str) => String(str).replace(/\n/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+  const keys = Object.keys(row);
+  const key = keys.find((k) => {
+    const normalizedKey = normalize(k);
+    return possibleKeys.some((name) => {
+      const normalizedName = normalize(name);
+      return normalizedKey.includes(normalizedName) || normalizedName.includes(normalizedKey);
+    });
+  });
+  return key ? row[key] : "-";
+}
+
+function formatExcelDate(value) {
+  if (value === null || value === undefined || value === "-" || value === "") return "-";
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return "-";
+    const month = value.getMonth() + 1;
+    const day = value.getDate();
+    const year = value.getFullYear();
+    let hours = value.getHours();
+    const minutes = String(value.getMinutes()).padStart(2, "0");
+    const seconds = String(value.getSeconds()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+  if (typeof value === "string" && isNaN(Number(value))) return value.trim();
+  if (typeof value === "number") {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const msPerDay = 86400000;
+    const jsDate = new Date(excelEpoch.getTime() + value * msPerDay);
+    if (isNaN(jsDate.getTime())) return String(value);
+    const month = jsDate.getUTCMonth() + 1;
+    const day = jsDate.getUTCDate();
+    const year = jsDate.getUTCFullYear();
+    let hours = jsDate.getUTCHours();
+    const minutes = String(jsDate.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(jsDate.getUTCSeconds()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+  return String(value);
+}
+
+function extractTicketNumber(row) {
+  let rawTicket = getValueFromRow(row, CONFIG.TICKET_KEYS);
+  if (!rawTicket) return null;
+  const text = String(rawTicket).replace(/\n/g, " ").trim();
+  if (/^incident\s+number\s*:/i.test(text)) return null;
+  const match = text.match(/INC\d+/i);
+  if (!match) return null;
+  const ticketNumber = match[0].toUpperCase();
+  return { raw: ticketNumber, clean: ticketNumber };
+}
+
+function getStatusCategory(status) {
+  const upperStatus = String(status).toUpperCase();
+  if (upperStatus.includes("RESOLVED")) return "Resolved";
+  if (upperStatus.includes("PENDING")) return "Pending";
+  if (upperStatus.includes("ASSIGNED")) return "Assigned";
+  if (upperStatus.includes("CLOSED")) return "Closed";
+  if (upperStatus.includes("PROGRESS")) return "In Progress";
+  return null;
+}
+
+function getConfirm(status, assigned) {
+  const upperStatus = String(status).toUpperCase();
+  const assignedStr = String(assigned).toLowerCase();
+  const isRegion = CONFIG.LOCATIONS.some((l) => assignedStr.includes(l.toLowerCase()));
+  if ((upperStatus.includes("ASSIGNED") || upperStatus.includes("PENDING")) && isRegion) {
+    return "Sudah";
+  }
+  return ""; 
+}
+
+function generateKeterangan(status, assigned) {
+  const upperStatus = String(status).toUpperCase();
+  const assignedStr = String(assigned).toLowerCase();
+  const isRegion = CONFIG.LOCATIONS.some((l) => assignedStr.includes(l.toLowerCase()));
+  if ((upperStatus.includes("PENDING") || upperStatus.includes("ASSIGNED")) && isRegion) {
+    return `Sudah dikoordinasikan dengan team IT ${assigned}`;
+  }
+  if (upperStatus.includes("PENDING") && assignedStr.includes("security")) {
+    return "Sudah dikoordinasikan dengan team IT Security";
+  }
+  return "";
+}
+
+function findHeaderRow(rows) {
+  let headerIndex = rows.findIndex((row) =>
+    row.some((cell) => cell && String(cell).toUpperCase().includes("NOMOR TIKET"))
+  );
+  if (headerIndex === -1) {
+    headerIndex = rows.findIndex((row) =>
+      row.some((cell) => cell && String(cell).toUpperCase().includes("INCIDENT"))
+    );
+  }
+  return headerIndex >= 0 ? headerIndex : 0;
+}
+
+function filterUniqueTickets(data) {
+  const uniqueMap = new Map();
+  data.forEach((row) => {
+    const ticket = extractTicketNumber(row);
+    if (!ticket) return;
+    const uniqueKey = ticket.clean;
+    if (!uniqueMap.has(uniqueKey)) {
+      uniqueMap.set(uniqueKey, { rowAsli: { ...row }, tiketAsli: ticket.clean });
+    }
+  });
+  return uniqueMap;
+}
+
+function getSelectedPetugas() {
+  const selectElement = document.getElementById("namaPetugas");
+  return selectElement.value || CONFIG.DEFAULT_PETUGAS;
+}
+
+// ==================== MAIN PROCESS FUNCTION ====================
+async function prosesData() {
+  const fileInput = document.getElementById("inputFile");
+  const notif = document.getElementById("notif");
+  const prosesBtn = document.getElementById("prosesBtn");
+
+  if (!fileInput.files[0]) {
+    alert("Pilih file dulu!");
+    return;
+  }
+
+  prosesBtn.disabled = true;
+  prosesBtn.textContent = "PROSES...";
+  notif.innerHTML = "<span class='text-info'>⏳ Memproses data & mengatur layout tabel...</span>";
+
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array", cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const headerIndex = findHeaderRow(rows);
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, range: headerIndex });
+
+      const headers = rawRows[0].map((h) => String(h || "").replace(/\n/g, " ").replace(/\s+/g, " ").trim());
+      const rawData = rawRows.slice(1).map((row) => {
+        const obj = {};
+        headers.forEach((header, index) => { obj[header] = row[index]; });
+        return obj;
+      });
+
+      if (rawRows.length === 0) throw new Error("Data tidak ditemukan.");
+
+      const uniqueTicketsMap = filterUniqueTickets(rawData);
+      const duplicateCount = rawData.length - uniqueTicketsMap.size;
+
+      const shift = document.getElementById("shift").value;
+      const tgl = document.getElementById("tanggal").value;
+      const namaPetugas = getSelectedPetugas();
+
+      const reportData = buildReportData(uniqueTicketsMap, shift, tgl, namaPetugas, duplicateCount);
+
+      // =========================================================
+      // PEMBUATAN EXCEL & PEMBERIAN WARNA + BORDER
+      // =========================================================
+      const newSheet = XLSX.utils.aoa_to_sheet(reportData);
+      
+      const headerRowIndex = 7; // Header tabel ada di array index 7
+      const totalDataRows = uniqueTicketsMap.size;
+      const thinBorder = {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      };
+
+      for (let R = headerRowIndex; R <= headerRowIndex + totalDataRows; ++R) {
+        for (let C = 0; C < 9; ++C) {
+          const cell_ref = XLSX.utils.encode_cell({ r: R, c: C });
+          
+          if (!newSheet[cell_ref]) newSheet[cell_ref] = { t: 's', v: '' };
+
+          const cell = newSheet[cell_ref];
+          cell.s = cell.s || {};
+
+          if (R === headerRowIndex) {
+            // WARNA BIRU LANGIT (87CEEB)
+            cell.s = {
+              fill: { fgColor: { rgb: "87CEEB" } },
+              font: { bold: true, name: "Segoe UI", sz: 11 },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: thinBorder
+            };
+          } else {
+            cell.s = {
+              font: { name: "Segoe UI", sz: 10 },
+              alignment: { vertical: "center" },
+              border: thinBorder
+            };
+            if (C === 0 || C === 3 || C === 5 || C === 6 || C === 8) {
+              cell.s.alignment.horizontal = "center";
+            }
+          }
+        }
+      }
+
+      newSheet["!cols"] = [
+        { wch: 5 }, { wch: 22 }, { wch: 22 }, { wch: 12 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 45 }, { wch: 12 }
+      ];
+
+      const newWB = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWB, newSheet, "Laporan");
+      XLSX.writeFile(newWB, `Laporan_NOC_${tgl}_${namaPetugas.replace(/\s/g, "_")}.xlsx`);
+
+      let notifMessage = `<span class='text-success'>✅ Sukses! Excel sudah bergaris dan berwarna.<br>👤 Petugas: ${namaPetugas}`;
+      if (duplicateCount > 0) notifMessage += `<br>⚠️ ${duplicateCount} data duplikat otomatis dihapus.</span>`;
+      else notifMessage += `</span>`;
+      notif.innerHTML = notifMessage;
+
+    } catch (err) {
+      notif.innerHTML = `<span class='text-danger'>❌ Error: ${err.message}</span>`;
+    } finally {
+      prosesBtn.disabled = false;
+      prosesBtn.textContent = "PROSES & DOWNLOAD HASIL AKHIR";
+    }
+  };
+
+  reader.readAsArrayBuffer(fileInput.files[0]);
+}
+
+// ==================== BUILD REPORT FUNCTION ====================
+function buildReportData(uniqueTicketsMap, shift, tgl, namaPetugas, duplicateCount) {
+  const reportData = [
+    ["FORM LAPORAN SELESAI DINASAN NOC-SA"],
+    [],
+    ["Nama", ": " + namaPetugas],
+    ["Dinasan", ": " + shift],
+    ["Tanggal", ": " + tgl],
+    ["Job", ": Security Analyst"],
+    [],
+    ["No", "Nomor Tiket", "Submit Date", "Status", "Assigned To", "Konfirm IT Support", "Konfirm User", "Keterangan", "Kesesuaian"]
+  ];
+
+  const counts = { Assigned: 0, Pending: 0, Resolved: 0, Closed: 0, "In Progress": 0 };
+  let urutanNo = 1;
+
+  uniqueTicketsMap.forEach((dataItem) => {
+    const row = dataItem.rowAsli;
+    const tiketTampil = dataItem.tiketAsli;
+
+    const submitDate = formatExcelDate(getValueFromRow(row, CONFIG.DATE_KEYS));
+    const status = getValueFromRow(row, CONFIG.STATUS_KEYS);
+    const assigned = getValueFromRow(row, CONFIG.ASSIGNED_KEYS);
+
+    const statusCat = getStatusCategory(status);
+    if (statusCat && counts.hasOwnProperty(statusCat)) {
+      counts[statusCat]++;
+    }
+
+    const keterangan = generateKeterangan(status, assigned);
+    const konfirmUser = getConfirm(status, assigned);
+
+    reportData.push([
+      urutanNo,
+      tiketTampil,
+      submitDate,
+      status,
+      assigned,
+      `Proses by ${namaPetugas.split(" ")[0]}`,
+      konfirmUser,
+      keterangan,
+      "Sesuai"
+    ]);
+    urutanNo++;
+  });
+
+  reportData.push([], ["SUMMARY TICKET STATUS"]);
+  Object.keys(counts).forEach((k) => {
+    if (counts[k] > 0) reportData.push([k, counts[k]]);
+  });
+
+  reportData.push(["Grand Total", uniqueTicketsMap.size]);
+
+  if (duplicateCount > 0) {
+    reportData.push([`Catatan: ${duplicateCount} data duplikat telah dihapus otomatis`]);
+  }
+
+  return reportData;
+}
+
+// ==================== CUSTOM NAME HANDLERS ====================
+function setupCustomNameHandlers() {
+  const btnCustom = document.getElementById("btnCustomNama");
+  const customWrapper = document.getElementById("customNamaWrapper");
+  const btnApply = document.getElementById("btnApplyCustom");
+  const btnCancel = document.getElementById("btnCancelCustom");
+  const customInput = document.getElementById("customNama");
+  const selectPetugas = document.getElementById("namaPetugas");
+
+  btnCustom.addEventListener("click", () => {
+    customWrapper.style.display = "block";
+    customInput.value = "";
+    customInput.focus();
+    btnCustom.disabled = true;
+  });
+
+  btnApply.addEventListener("click", () => {
+    const customName = customInput.value.trim();
+    if (customName === "") {
+      alert("Masukkan nama petugas terlebih dahulu!");
+      return;
+    }
+
+    const newOption = document.createElement("option");
+    newOption.value = customName;
+    newOption.textContent = customName;
+    selectPetugas.appendChild(newOption);
+    selectPetugas.value = customName;
+
+    customWrapper.style.display = "none";
+    btnCustom.disabled = false;
+    customInput.value = "";
+
+    const notif = document.getElementById("notif");
+    notif.innerHTML = `<span class='text-success'>✅ Nama "${customName}" ditambahkan ke daftar!</span>`;
+    setTimeout(() => { if (notif.innerHTML.includes("ditambahkan")) notif.innerHTML = ""; }, 2000);
+  });
+
+  btnCancel.addEventListener("click", () => {
+    customWrapper.style.display = "none";
+    btnCustom.disabled = false;
+    customInput.value = "";
+  });
+
+  customInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") btnApply.click();
+  });
+}
+
+// ==================== INITIALIZATION ====================
+document.getElementById("tanggal").valueAsDate = new Date();
+setupCustomNameHandlers();
+document.getElementById("prosesBtn").addEventListener("click", prosesData);
+
+</script>
+</body>
 </html>
