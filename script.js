@@ -357,3 +357,87 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCustomNameHandlers();
   document.getElementById("prosesBtn").addEventListener("click", prosesData);
 });
+
+// ================= Tanda Tangan =========================
+
+// ==================== LOGIKA PAD TANDA TANGAN ====================
+function initSignaturePad() {
+  const canvas = document.getElementById("signaturePad");
+  const ctx = canvas.getContext("2d");
+  let isDrawing = false;
+
+  // Atur ketebalan dan warna garis tanda tangan
+  ctx.strokeStyle = "#000000"; 
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+
+  // Fungsi mendapatkan posisi kursor/sentuhan
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function startDraw(e) {
+    isDrawing = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    e.preventDefault();
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    e.preventDefault();
+  }
+
+  function stopDraw() { isDrawing = false; }
+
+  // Event untuk Mouse (PC/Laptop)
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", stopDraw);
+  canvas.addEventListener("mouseleave", stopDraw);
+
+  // Event untuk Touchscreen (HP/Tablet)
+  canvas.addEventListener("touchstart", startDraw);
+  canvas.addEventListener("touchmove", draw);
+  canvas.addEventListener("touchend", stopDraw);
+
+  // Tombol Hapus Tanda Tangan
+  document.getElementById("clearSignature").addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  });
+}
+
+// ======================= Pendukung TTD =======================
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("tanggal").valueAsDate = new Date();
+  setupCustomNameHandlers();
+  initSignaturePad(); // <--- SISIPIKAN BARIS INI
+  document.getElementById("prosesBtn").addEventListener("click", prosesData);
+});
+
+
+//======================== Memasukan Tanda Tangan ke Excel ==================
+
+// Mengambil gambar dari kotak canvas tanda tangan menjadi data base64
+const canvas = document.getElementById("signaturePad");
+const imageBase64 = canvas.toDataURL("image/png");
+
+// Memasukkan gambar tanda tangan ke dokumen ExcelJS
+const imageId = workbook.addImage({
+  base64: imageBase64,
+  extension: 'png',
+});
+
+// Menentukan posisi cell tanda tangan diletakkan (Misal di kolom B setelah tabel summary)
+worksheet.addImage(imageId, {
+  tl: { col: 1, row: posisiRowTandaTangan },
+  ext: { width: 150, height: 60 }
+});
