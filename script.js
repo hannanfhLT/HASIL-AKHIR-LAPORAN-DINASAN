@@ -1,6 +1,6 @@
 // ==================== KONSTANTA & KONFIGURASI ====================
 const CONFIG = {
-  LOCATIONS: ["Daop", "Divre", "Balayasa", "Yogyakarta", "Tegal", "Gubeng"],
+  LOCATIONS: ["Daop", "Divre", "Balayasa Yogyakarta", "Balayasa Tegal", "Balayasa Gubeng", "Balayasa Manggarai", "Balayasa Surabaya Gubeng", "Balayasa Pulubrayan"],
   TICKET_KEYS: [
     "NOMOR TIKET",
     "INCIDENT NUMBER",
@@ -11,6 +11,7 @@ const CONFIG = {
   DATE_KEYS: ["SUBMIT DATE", "SUBMIT DATE WORK INFO", "REPORTED DATE"],
   STATUS_KEYS: ["STATUS", "STATUS*"],
   ASSIGNED_KEYS: ["ASSIGNED TO", "ASSIGNED GROUP*+", "ASSIGNEE GROUP"],
+  CONFIRM_KEYS: ["KONFIRM USER"],
   DEFAULT_PETUGAS: "Hannan Fakhrul Hakim",
 };
 
@@ -99,18 +100,6 @@ function formatExcelDate(value) {
   return String(value);
 }
 
-/**
- * Mengekstrak nomor tiket dari row
- */
-// function extractTicketNumber(row) {
-//   let rawTicket = getValueFromRow(row, CONFIG.TICKET_KEYS);
-//   let cleanTicket = String(rawTicket).trim().toUpperCase();
-
-//   if (!cleanTicket || cleanTicket === "-" || cleanTicket === "UNDEFINED") {
-//     return null;
-//   }
-//   return { raw: String(rawTicket).trim(), clean: cleanTicket };
-// }
 
 function extractTicketNumber(row) {
   let rawTicket = getValueFromRow(row, CONFIG.TICKET_KEYS);
@@ -137,6 +126,7 @@ function extractTicketNumber(row) {
 /**
  * Menentukan status count berdasarkan status string
  */
+
 function getStatusCategory(status) {
   const upperStatus = String(status).toUpperCase();
   if (upperStatus.includes("RESOLVED")) return "Resolved";
@@ -148,13 +138,36 @@ function getStatusCategory(status) {
 }
 
 /**
- * Menentukan keterangan otomatis
+ * Menentukan isi otomatis untuk kolom Konfirm User
  */
-function generateKeterangan(status, assigned) {
+function getConfirm(status, assigned) {
   const upperStatus = String(status).toUpperCase();
   const assignedStr = String(assigned).toLowerCase();
+  
+  // Cek apakah assigned ada di dalam CONFIG.LOCATIONS
   const isRegion = CONFIG.LOCATIONS.some((l) =>
-    assignedStr.includes(l.toLowerCase()),
+    assignedStr.includes(l.toLowerCase())
+  );
+
+  // Jika Status mengandung "ASSIGNED" dan Assigned To sesuai LOCATIONS
+  if (upperStatus.includes("ASSIGNED") && isRegion) {
+    return "Sudah";
+  }
+  
+
+  // Jika tidak memenuhi syarat, biarkan kosong (atau sesuaikan dengan kebutuhan)
+  return ""; 
+}
+
+/**
+ * Menentukan keterangan otomatis
+ */
+function generateKeterangan(status, assigned, confirmations) {
+  const upperStatus = String(status).toUpperCase();
+  const assignedStr = String(assigned).toLowerCase();
+  
+  const isRegion = CONFIG.LOCATIONS.some((l) =>
+    assignedStr.includes(l.toLowerCase())
   );
 
   if (
@@ -165,6 +178,9 @@ function generateKeterangan(status, assigned) {
   }
   if (upperStatus.includes("PENDING") && assignedStr.includes("security")) {
     return "Sudah dikoordinasikan dengan team IT Security";
+  }
+  if ((upperStatus.includes("ASSIGNED") || upperStatus.includes("PENDING")) && isRegion) {
+    return "Sudah";
   }
   return "";
 }
@@ -189,24 +205,6 @@ function findHeaderRow(rows) {
   return headerIndex >= 0 ? headerIndex : 0;
 }
 
-/**
- * Filter duplikat berdasarkan nomor tiket (hanya ambil 1 tiket)
- */
-// function filterUniqueTickets(data) {
-//   const uniqueMap = new Map();
-
-//   data.forEach((row) => {
-//     const ticket = extractTicketNumber(row);
-//     if (ticket && !uniqueMap.has(ticket.clean)) {
-//       uniqueMap.set(ticket.clean, {
-//         rowAsli: row,
-//         tiketAsli: ticket.raw,
-//       });
-//     }
-//   });
-
-//   return uniqueMap;
-// }
 
 function filterUniqueTickets(data) {
   const uniqueMap = new Map();
@@ -274,9 +272,7 @@ async function prosesData() {
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
       const headerIndex = findHeaderRow(rows);
-      // const rawData = XLSX.utils.sheet_to_json(sheet, {
-      //   range: headerIndex,
-      // });
+  
       const rawRows = XLSX.utils.sheet_to_json(sheet, {
         header: 1,
         range: headerIndex,
@@ -412,6 +408,7 @@ function buildReportData(
     const submitDate = formatExcelDate(getValueFromRow(row, CONFIG.DATE_KEYS));
     const status = getValueFromRow(row, CONFIG.STATUS_KEYS);
     const assigned = getValueFromRow(row, CONFIG.ASSIGNED_KEYS);
+    const confirmations = getConfirm(status, assigned)
 
     // Update counter status
     const statusCat = getStatusCategory(status);
@@ -420,20 +417,22 @@ function buildReportData(
     }
 
     const keterangan = generateKeterangan(status, assigned);
-
+    const konfirmUser = getConfirm(status, assigned)
     reportData.push([
-      urutanNo,
-      tiketTampil,
-      submitDate,
-      status,
-      assigned,
-      `Proses by ${namaPetugas.split(" ")[0]}`, // Menggunakan nama depan petugas
-      "",
-      keterangan,
-      "Sesuai",
-    ]);
+      urutanNo,
+      tiketTampil,
+      submitDate,
+      status,
+      assigned,
+      `Proses by ${namaPetugas.split(" ")[0]}`, // Menggunakan nama depan petugas
+      konfirmUser, // <--- MASUKKAN VARIABELNYA KE SINI
+      keterangan,
+      "Sesuai",
+    ]);
     urutanNo++;
   });
+
+
 
   // Tambah summary
   reportData.push([], ["SUMMARY TICKET STATUS"]);
