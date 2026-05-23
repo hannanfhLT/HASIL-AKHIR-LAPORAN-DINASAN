@@ -22,16 +22,24 @@ Aplikasi ini dibuat untuk mempercepat pembuatan laporan dinasan harian dengan fi
 
 
 ## 🚀 Cara Penggunaan
-Karena aplikasi ini berjalan 100% di sisi *client* (browser), cara penggunaannya sangat mudah:
+Langkah untuk download nya di github
 
 1. Clone atau *download* repository ini ke komputer Anda.
    ```bash
    git clone [https://github.com/username-anda/noc-sa-converter.git](https://github.com/username-anda/noc-sa-converter.git)
 2. Pastikan file index.html dan script.js berada dalam satu folder yang sama.
 3. Buka file index.html menggunakan browser apa saja (Chrome/Edge/Firefox).
-4. Upload file mentahan Excel (.xlsx atau .csv).
-5. Pilih Shift, Tanggal, dan Nama Petugas.
-6. Klik "PROSES & DOWNLOAD HASIL AKHIR". File laporan yang sudah rapi akan otomatis terunduh!
 
+## 🚀 Cara Penggunaan Upload file
+
+1. Siapkan dulu file mentahan excelnya yang di ambil di BMC
+2. Upload file excel mentahan tersebut
+3. Input Shift, Tanggal, Jobdesk, dan Input nama (bila namanya tidak ada)
+4. Siapkan tanda tangan (Foto yang sudah di crop, file type nya .png supaya tranfaran)
+5. Upload image.png (img tanda tangan)
+6. Buatlah nama file yang sudah ditentukan
+
+
+Semoga bermanfaat ges!
 
 Created by Hannan & Gylang
