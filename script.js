@@ -382,7 +382,22 @@ async function prosesData() {
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `Laporan_NOC_${tgl}_${namaPetugas.replace(/\s/g, "_")}.xlsx`;
+
+      // --- LOGIKA NAMA FILE PINTAR ---
+      const inputFileName = document.getElementById("customFileName").value.trim();
+      let finalFileName = `Laporan_NOC_${tgl}_${namaPetugas.replace(/\s/g, "_")}.xlsx`; // Nama Default
+      
+      if (inputFileName !== "") {
+        // Cek apakah user sudah mengetik .xlsx atau belum di akhir namanya
+        if (inputFileName.toLowerCase().endsWith(".xlsx")) {
+          finalFileName = inputFileName;
+        } else {
+          finalFileName = inputFileName + ".xlsx";
+        }
+      }
+      // -------------------------------
+
+      anchor.download = finalFileName;
       anchor.click();
       window.URL.revokeObjectURL(url);
 
