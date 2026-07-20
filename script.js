@@ -1,6 +1,6 @@
 // ==================== KONSTANTA & KONFIGURASI ====================
 const CONFIG = {
-  LOCATIONS: ["Daop", "Divre", "LRT", "Balayasa Yogyakarta", "Balayasa Tegal", "Balayasa Gubeng", "Balayasa Manggarai", "Balayasa Surabaya Gubeng", "Balayasa Pulubrayan"],
+  LOCATIONS: ["Daop", "Divre", "LRT", "KAI SERVICE", "KAI PROPERTI", "KCI", "KAI LOGISTIK", "Balayasa Yogyakarta", "Balayasa Tegal", "Balayasa Gubeng", "Balayasa Manggarai", "Balayasa Surabaya Gubeng", "Balayasa Pulubrayan"],
   TICKET_KEYS: ["NOMOR TIKET", "INCIDENT NUMBER", "INCIDENT ID*+", "TICKET NO", "INCIDENT ID"],
   DATE_KEYS: ["SUBMIT DATE", "SUBMIT DATE WORK INFO", "REPORTED DATE"],
   STATUS_KEYS: ["STATUS", "STATUS*"],
