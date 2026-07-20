@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  laporan-dinasan:
+    build: .
+    container_name: laporan-dinasan
+    # Port ini bisa di-expose untuk akses langsung (development)
+    # Di production, sebaiknya akses hanya via Cybergate
+    # ports:
+    #  - "5004:5004"
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Jakarta
+      CYBERGATE_HOST: http://cybergate-web:5000
+      CYBERGATE_ENABLED: "1"
+    restart: unless-stopped
+    networks:
+      - cybergate_cybergate-network
+
+networks:
+  cybergate_cybergate-network:
+    external: true

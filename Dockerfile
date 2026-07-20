@@ -1,11 +1,20 @@
-# Gunakan Nginx versi ringan
-FROM nginx:alpine
+# Gunakan Python sebagai base image
+FROM python:3.11-slim
 
-# Copy file project (HTML, JS) ke folder public Nginx
-COPY . /usr/share/nginx/html
+# Set working directory
+WORKDIR /app
 
-# Buka port 80 di dalam container
-EXPOSE 80
+# Copy requirements first for better caching
+COPY requirements.txt .
 
-# Jalankan Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY . .
+
+# Expose port
+EXPOSE 5004
+
+# Run Flask app
+CMD ["python", "app.py"]

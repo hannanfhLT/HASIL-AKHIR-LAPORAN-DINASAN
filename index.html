@@ -9,6 +9,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
   <style>
     body { background: #f0f2f5; padding: 50px; font-family: 'Segoe UI', sans-serif; }
+    .header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .btn-back { background: #6c757d; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.3s; }
+    .btn-back:hover { background: #5a6268; color: white; transform: translateX(-5px); }
+    .user-badge { background: #e9ecef; padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #495057; display: flex; align-items: center; gap: 8px; }
     .upload-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     .btn-primary { background: #004d99; border: none; padding: 12px; font-weight: bold; }
     #notif { font-weight: 500; margin-top: 15px; }
@@ -17,6 +21,15 @@
 <body>
 
 <div class="container col-md-6">
+  <div class="header-info">
+    <a href="/portal" id="btn-back-portal" class="btn-back">
+      <i class="bi bi-arrow-left"></i> Kembali ke Cybergate
+    </a>
+    <div class="user-badge">
+      <span class="text-muted">User:</span> <span id="cg-username">Guest</span>
+    </div>
+  </div>
+
   <div class="upload-card">
     <h4 class="text-center mb-4">UPLOAD MENTAHAN LAPORAN EXCEL</h4>
     
@@ -87,7 +100,8 @@
     <div id="notif" class="text-center small"></div>
   </div>
   <div class="text-center mt-4 text-muted" style="font-size: 0.9rem;">
-      ✍️ Created by <strong>Hannan Fh</strong>
+      ✍️ Created by <strong>Hannan Fh</strong><br>
+      <small>Integrated with Cybergate by <strong>gylangsatria</strong> (branch: <code>integrated/cybergate</code>)</small>
     </div>
 </div>
 

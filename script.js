@@ -416,10 +416,26 @@ async function prosesData() {
   reader.readAsArrayBuffer(fileInput.files[0]);
 }
 
+// ==================== CYBERGATE INTEGRATION ====================
+function fetchUserInfo() {
+  // Ambil data yang sudah di-inject dari server-side (app.py)
+  if (window._CYBERGATE_USER) {
+    document.getElementById('cg-username').textContent = window._CYBERGATE_USER;
+  }
+  
+  if (window._CYBERGATE_PORTAL_URL) {
+    const btnBack = document.getElementById('btn-back-portal');
+    if (btnBack) {
+      btnBack.href = window._CYBERGATE_PORTAL_URL;
+    }
+  }
+}
+
 // ==================== INISIALISASI ====================
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tanggal").valueAsDate = new Date();
   setupCustomNameHandlers(); 
   initSignatureUpload();
+  fetchUserInfo();
   document.getElementById("prosesBtn").addEventListener("click", prosesData);
 });
